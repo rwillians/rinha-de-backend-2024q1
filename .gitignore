@@ -1,1 +1,14 @@
+/.elixir_ls/
+/_phoenix/
+/_build/
+/cover/
+/deps/
+/doc/
+/tmp/
+*.ez
+.fetch
+play.ex
 .DS_Store
+rinha-*.tar
+npm-debug.log
+erl_crash.dump
