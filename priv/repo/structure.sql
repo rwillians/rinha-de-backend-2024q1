@@ -69,7 +69,8 @@ CREATE TABLE public.transacoes (
     cliente_id integer NOT NULL,
     tipo character varying(1) NOT NULL,
     valor integer NOT NULL,
-    descricao character varying(10) NOT NULL
+    descricao character varying(10) NOT NULL,
+    realizada_em timestamp without time zone NOT NULL
 );
 
 
@@ -105,10 +106,10 @@ ALTER TABLE ONLY public.transacoes
 
 
 --
--- Name: transacoes_cliente_id_id_DESC_index; Type: INDEX; Schema: public; Owner: -
+-- Name: transacoes_cliente_id_realizada_em_DESC_index; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX "transacoes_cliente_id_id_DESC_index" ON public.transacoes USING btree (cliente_id, id DESC);
+CREATE INDEX "transacoes_cliente_id_realizada_em_DESC_index" ON public.transacoes USING btree (cliente_id, realizada_em DESC);
 
 
 --

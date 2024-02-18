@@ -64,26 +64,42 @@ defmodule Rinha do
         when cliente_id: pos_integer | String.t()
 
   def pegar_extrato(cliente_id) when is_integer(cliente_id) do
-    case Repo.get(Cliente, cliente_id) do
-      nil ->
+    query =
+      from c in Cliente,
+        left_join: t in Transacao,
+        on: t.cliente_id == c.id,
+        where: c.id == ^cliente_id,
+        select: {c, t},
+        limit: 10,
+        order_by: [desc: t.realizada_em]
+
+    case Repo.all(query) do
+      [] ->
         {:error, :cliente_nao_encontrado}
 
-      %Cliente{} = cliente ->
-        saldo = %{
+      [{cliente, _} | _] = entries ->
+        balanco = %{
           total: cliente.saldo,
-          data_extrato: DateTime.utc_now(),
-          limite: cliente.limite
+          limite: cliente.limite,
+          data_extrato: DateTime.utc_now()
         }
 
-        {:ok, %{saldo: saldo, ultimas_transacoes: []}}
+        transacoes =
+          entries
+          |> Enum.map(&elem(&1, 1))
+          |> Enum.reject(&is_nil/1)
+          |> Enum.map(&Map.take(&1, [:tipo, :valor, :descricao, :realizada_em]))
+
+        {:ok, %{saldo: balanco, ultimas_transacoes: transacoes}}
     end
   end
 
   def pegar_extrato(<<_, _::binary>> = cliente_id) do
-    cliente_id
-    |> String.to_integer()
-    |> pegar_extrato()
+    String.to_integer(cliente_id)
   rescue
+    # o cliente_id pode não ser um número válido
     _ -> {:error, :cliente_nao_encontrado}
+  else
+    client_id -> pegar_extrato(client_id)
   end
 end
