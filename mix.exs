@@ -18,7 +18,7 @@ defmodule Rinha.MixProject do
   def application do
     [
       mod: {Rinha.Application, []},
-      extra_applications: [:logger, :runtime_tools, :os_mon]
+      extra_applications: [:logger]
     ]
   end
 

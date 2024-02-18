@@ -12,11 +12,12 @@ defmodule Rinha.Cliente do
           saldo: integer
         }
 
-  @primary_key false
+  @primary_key {:id, :integer, []}
   schema "clientes" do
-    field :id, :integer, primary_key: true
     field :limite, :integer
     field :saldo, :integer
+
+    has_many :transacoes, Rinha.Transacao
   end
 
   @doc false

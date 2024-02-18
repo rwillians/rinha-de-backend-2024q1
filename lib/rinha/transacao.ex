@@ -15,10 +15,9 @@ defmodule Rinha.Transacao do
           realizada_em: DateTime.t()
         }
 
-  @primary_key false
+  @primary_key {:id, Ecto.UUID, autogenerate: true}
   schema "transacoes" do
-    field :id, Ecto.UUID, autogenerate: true, primary_key: true
-    field :cliente_id, :integer
+    belongs_to :cliente, Rinha.Cliente, type: :integer
     field :tipo, Ecto.Enum, values: [:c, :d]
     field :valor, :integer
     field :descricao, :string

@@ -35,7 +35,7 @@ case config_env() do
         For example: postgres://USER:PASS@HOST/DATABASE
         """
 
-    ssl_enabled? = System.get_env("ECTO_SSL_ENABLED", "false") in ~w(true 1)
+    ssl_enabled? = System.get_env("ECTO_SSL_ENABLED", "true") in ~w(true 1)
     pool_size = String.to_integer(System.get_env("ECTO_POOL_SIZE") || "15")
 
     config :rinha, Rinha.Repo,
@@ -57,6 +57,6 @@ case config_env() do
 
   _remote ->
     config :rinha, RinhaWeb.Endpoint,
-      enabled?: System.get_env("PHX_SERVER") in ~w(true 1),
+      enabled?: System.get_env("SERVER_ENABLED", "true") in ~w(true 1),
       port: String.to_integer(System.get_env("PORT") || "3000")
 end

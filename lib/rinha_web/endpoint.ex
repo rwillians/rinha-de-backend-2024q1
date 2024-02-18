@@ -5,17 +5,8 @@ defmodule RinhaWeb.Endpoint do
   import Ex.Plug.Conn
   import Rinha, only: [pegar_extrato: 1, postar_transacao: 1]
 
-  plug Plug.Static,
-    at: "/",
-    from: :rinha,
-    gzip: false,
-    only: ~w(favicon.ico robots.txt)
-
-  plug Plug.RequestId
-  plug Plug.Logger, log: :info
-
   plug Plug.Parsers,
-    parsers: [:urlencoded, :multipart, {:json, json_decoder: Jason}],
+    parsers: [{:json, json_decoder: Jason}],
     pass: ["*/*"]
 
   plug :match
