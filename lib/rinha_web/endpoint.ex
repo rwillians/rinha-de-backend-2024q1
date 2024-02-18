@@ -2,6 +2,9 @@ defmodule RinhaWeb.Endpoint do
   use Plug.Router
   use Plug.ErrorHandler
 
+  import Ex.Plug.Conn
+  import Rinha, only: [pegar_extrato: 1]
+
   plug Plug.Static,
     at: "/",
     from: :rinha,
@@ -26,6 +29,13 @@ defmodule RinhaWeb.Endpoint do
     conn
     |> put_resp_content_type("text/plain")
     |> send_resp(200, "pong!")
+  end
+
+  get "/clientes/:id/extrato" do
+    case pegar_extrato(conn.params["id"]) do
+      {:ok, extrato} -> send_resp_json(conn, 200, extrato)
+      {:error, :cliente_nao_encontrado} -> send_resp(conn, 404, "")
+    end
   end
 
   #
