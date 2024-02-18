@@ -3,7 +3,7 @@ defmodule Ex.Ecto.Changeset do
   Extended functionalities to `Ecto.Changeset`.
   """
 
-  import Ecto.Changeset, only: [traverse_errors: 2]
+  import Ecto.Changeset
   import Regex, only: [replace: 3]
   import Keyword, only: [get: 3]
   import String, only: [to_existing_atom: 1]

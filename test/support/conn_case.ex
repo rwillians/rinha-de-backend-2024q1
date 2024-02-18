@@ -17,8 +17,12 @@ defmodule RinhaWeb.ConnCase do
 
   using do
     quote do
+      @endpoint RinhaWeb.Endpoint
+
       use Plug.Test
 
+      import Rinha.ClienteCase
+      import Rinha.DataCase
       import RinhaWeb.ConnCase
     end
   end
@@ -28,13 +32,20 @@ defmodule RinhaWeb.ConnCase do
     :ok
   end
 
-  @endpoint RinhaWeb.Endpoint
-
   @doc """
   Dispatches the request to the plug application.
   """
-  @spec dispatch(conn) :: conn
-        when conn: Plug.Conn.t()
+  defmacro req(method, path) do
+    quote do
+      conn(unquote(method), unquote(path))
+      |> @endpoint.call([])
+    end
+  end
 
-  def dispatch(conn), do: @endpoint.call(conn, [])
+  defmacro req(method, path, params_or_body) do
+    quote do
+      conn(unquote(method), unquote(path), unquote(params_or_body))
+      |> @endpoint.call([])
+    end
+  end
 end

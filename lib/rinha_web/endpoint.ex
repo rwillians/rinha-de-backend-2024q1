@@ -3,7 +3,7 @@ defmodule RinhaWeb.Endpoint do
   use Plug.ErrorHandler
 
   import Ex.Plug.Conn
-  import Rinha, only: [pegar_extrato: 1]
+  import Rinha, only: [pegar_extrato: 1, postar_transacao: 1]
 
   plug Plug.Static,
     at: "/",
@@ -31,10 +31,19 @@ defmodule RinhaWeb.Endpoint do
     |> send_resp(200, "pong!")
   end
 
-  get "/clientes/:id/extrato" do
-    case pegar_extrato(conn.params["id"]) do
+  get "/clientes/:cliente_id/extrato" do
+    case pegar_extrato(conn.params["cliente_id"]) do
       {:ok, extrato} -> send_resp_json(conn, 200, extrato)
       {:error, :cliente_nao_encontrado} -> send_resp(conn, 404, "")
+    end
+  end
+
+  post "/clientes/:cliente_id/transacoes" do
+    case postar_transacao(conn.params) do
+      {:ok, balanco} -> send_resp_json(conn, 200, balanco)
+      {:error, :cliente_nao_encontrado} -> send_resp(conn, 404, "")
+      {:error, :limite_excedido} -> send_resp(conn, 422, "")
+      {:error, %Ecto.Changeset{}} -> send_resp(conn, 422, "")
     end
   end
 

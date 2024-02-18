@@ -3,12 +3,12 @@ defmodule RinhaWeb.ExtratoTest do
 
   describe "GET /clientes/:cliente_id/extrato" do
     test "404 :: quando cliente não existe" do
-      conn = conn(:get, "/clientes/1/extrato") |> dispatch()
+      conn = req(:get, "/clientes/1/extrato")
       assert conn.status == 404
     end
 
     test "404 :: quando o id do cliente não é um número base 10 válido" do
-      conn = conn(:get, "/clientes/1FF/extrato") |> dispatch()
+      conn = req(:get, "/clientes/1FF/extrato")
       assert conn.status == 404
     end
 
@@ -20,7 +20,7 @@ defmodule RinhaWeb.ExtratoTest do
           saldo: 0
         })
 
-      conn = conn(:get, "/clientes/#{cliente.id}/extrato") |> dispatch()
+      conn = req(:get, "/clientes/#{cliente.id}/extrato")
       assert conn.status == 200
 
       body = Jason.decode!(conn.resp_body, keys: :atoms)

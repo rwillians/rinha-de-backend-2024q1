@@ -26,6 +26,7 @@ defmodule Rinha.MixProject do
     [
       {:bandit, "~> 1.2"},
       {:ecto_sql, "~> 3.11"},
+      {:ecto_ulid, "~> 0.3"},
       {:jason, "~> 1.4"},
       {:plug, "~> 1.15"},
       {:postgrex, ">= 0.0.0"}
