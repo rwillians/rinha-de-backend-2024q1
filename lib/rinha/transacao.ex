@@ -10,12 +10,15 @@ defmodule Rinha.Transacao do
           id: Ecto.UUID.t(),
           cliente_id: pos_integer,
           tipo: :c | :d,
-          valor: integer,
+          valor: non_neg_integer,
           descricao: String.t(),
-          realizada_em: DateTime.t()
+          realizada_em: DateTime.t(),
+          # ↓ virtual fields
+          cliente: Rinha.Cliente.t() | nil
         }
 
   @primary_key {:id, Ecto.UUID, autogenerate: true}
+  @derive {Jason.Encoder, only: [:tipo, :valor, :descricao, :realizada_em]}
   schema "transacoes" do
     belongs_to :cliente, Rinha.Cliente, type: :integer
     field :tipo, Ecto.Enum, values: [:c, :d]
@@ -27,16 +30,32 @@ defmodule Rinha.Transacao do
                type: :utc_datetime_usec
   end
 
-  @doc false
-  @spec changeset(record, params) :: Ecto.Changeset.t()
-        when record: t,
-             params: map
+  @doc """
+  Cria uma estrutura de registro de alterações (`Ecto.Changeset`).
+  """
+  @spec changeset(documento, alteracoes) :: Ecto.Changeset.t()
+        when documento: t,
+             alteracoes: map
 
-  def changeset(record \\ %Transacao{}, %{} = params) do
-    record
-    |> cast(params, [:id, :cliente_id, :tipo, :valor, :descricao, :realizada_em])
+  def changeset(documento \\ %Transacao{}, %{} = alteracoes) do
+    documento
+    |> cast(alteracoes, [:cliente_id, :tipo, :valor, :descricao])
     |> validate_required([:cliente_id, :tipo, :valor, :descricao])
     |> validate_inclusion(:tipo, [:c, :d])
     |> validate_length(:descricao, min: 1, max: 10)
+  end
+
+  @doc """
+  Cria uma estrutura representando uma transação (não insere no banco de dados).
+  """
+  @spec nova(campos) :: {:ok, transacao} | {:error, changeset_invalido}
+        when campos: map,
+             transacao: t,
+             changeset_invalido: Ecto.Changeset.t()
+
+  def nova(%{} = campos) do
+    campos
+    |> changeset()
+    |> apply_action(:new)
   end
 end

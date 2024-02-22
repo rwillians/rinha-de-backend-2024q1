@@ -25,14 +25,14 @@ defmodule RinhaWeb.Endpoint do
   get "/clientes/:cliente_id/extrato" do
     case pegar_extrato(conn.params["cliente_id"]) do
       {:ok, extrato} -> send_resp_json(conn, 200, extrato)
-      {:error, :cliente_nao_encontrado} -> send_resp(conn, 404, "")
+      {:error, {:nao_encontrado, _, _}} -> send_resp(conn, 404, "")
     end
   end
 
   post "/clientes/:cliente_id/transacoes" do
     case postar_transacao(conn.params) do
-      {:ok, balanco} -> send_resp_json(conn, 200, balanco)
-      {:error, :cliente_nao_encontrado} -> send_resp(conn, 404, "")
+      {:ok, extrado_resumido} -> send_resp_json(conn, 200, extrado_resumido)
+      {:error, {:nao_encontrado, _, _}} -> send_resp(conn, 404, "")
       {:error, :limite_excedido} -> send_resp(conn, 422, "")
       {:error, %Ecto.Changeset{}} -> send_resp(conn, 422, "")
     end
@@ -43,13 +43,11 @@ defmodule RinhaWeb.Endpoint do
   #
 
   match _ do
-    conn
-    |> put_status(404)
-    |> send_resp()
+    send_resp(conn, 404, "")
   end
 
   @impl Plug.ErrorHandler
   def handle_errors(conn, %{kind: _kind, reason: _reason, stack: _stack}) do
-    send_resp(conn, conn.status, "Something went wrong")
+    send_resp(conn, conn.status, "Algo de errado não está certo.")
   end
 end

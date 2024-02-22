@@ -1,67 +1,67 @@
 defmodule Rinha do
   @moduledoc false
 
-  import Ecto.Changeset, only: [apply_action: 2]
   import Ecto.Query
+  import Rinha.Cliente, only: [pegar_cliente: 2]
 
   alias Ecto.Changeset
   alias Rinha.Cliente
-  alias Rinha.Repo
   alias Rinha.Transacao
+
+  @repo Rinha.Repo
 
   @typedoc false
   @type extrato :: %{
-          saldo: %{
-            total: integer,
-            data_extrato: DateTime.t(),
-            limite: pos_integer
-          },
-          ultimas_transacoes: [
-            %{
-              tipo: :c | :d,
-              valor: pos_integer,
-              descricao: String.t(),
-              realizada_em: DateTime.t()
-            }
-          ]
+          saldo: %{total: integer, data_extrato: DateTime.t(), limite: pos_integer},
+          ultimas_transacoes: [Rinha.Transacao.t()]
         }
 
-  def postar_transacao(params) do
-    changeset = Transacao.changeset(params)
+  @doc """
+  Posta uma transação para um cliente.
+  """
+  @spec postar_transacao(campos) ::
+          {:ok, extrato_resumido}
+          | {:error, changeset_invalido}
+          | {:error, {:nao_encontrado, Rinha.Cliente, id: term}}
+          | {:error, :limite_excedido}
+        when campos: map,
+             extrato_resumido: %{saldo: integer, limite: pos_integer},
+             changeset_invalido: Ecto.Changeset.t()
 
-    with {:ok, transacao} <- apply_action(changeset, :insert),
+  def postar_transacao(campos) do
+    with {:ok, transacao} <- Transacao.nova(campos),
          {:ok, %{cliente: {1, [cliente]}}} <- transacionar(transacao) do
       {:ok, Map.take(cliente, [:saldo, :limite])}
     else
-      {:error, %Changeset{}} = error -> error
-      {:error, :abortar, error, _} -> {:error, error}
+      {:error, %Changeset{} = motivo} -> {:error, motivo}
+      {:error, :abortar, motivo, _} -> {:error, motivo}
     end
-  end
-
-  defp calcular_valor_delta(%Transacao{tipo: :c, valor: valor}), do: valor
-  defp calcular_valor_delta(%Transacao{tipo: :d, valor: valor}), do: -valor
-
-  defp query_inc_saldo_cliente(cliente_id, valor_delta) do
-    from c in Cliente,
-      where: c.id == ^cliente_id,
-      update: [inc: [saldo: ^valor_delta]],
-      select: [:saldo, :limite]
   end
 
   defp transacionar(%Transacao{} = transacao) do
     cliente_id = transacao.cliente_id
-    valor_delta = calcular_valor_delta(transacao)
-    query_atualiza_saldo = query_inc_saldo_cliente(cliente_id, valor_delta)
+    valor_delta = calcular_alteracao_de_saldo(transacao)
+    query_cliente = query_incrementa_saldo_cliente(cliente_id, valor_delta)
 
     Ecto.Multi.new()
-    |> Ecto.Multi.update_all(:cliente, query_atualiza_saldo, [])
+    |> Ecto.Multi.update_all(:cliente, query_cliente, [])
     |> Ecto.Multi.run(:abortar, fn
-      _repo, %{cliente: {0, []}} -> {:error, :cliente_nao_encontrado}
+      _repo, %{cliente: {0, []}} -> {:error, {:nao_encontrado, Cliente, id: cliente_id}}
       _repo, %{cliente: {1, [%{saldo: s, limite: l}]}} when s < -l -> {:error, :limite_excedido}
       _repo, %{cliente: {1, [%{saldo: _, limite: _}]}} -> {:ok, nil}
     end)
     |> Ecto.Multi.insert(:transacao, transacao)
-    |> Repo.transaction()
+    |> @repo.transaction()
+  end
+
+  defp calcular_alteracao_de_saldo(%Transacao{tipo: :c, valor: valor}), do: valor
+  defp calcular_alteracao_de_saldo(%Transacao{tipo: :d, valor: valor}), do: -valor
+
+  defp query_incrementa_saldo_cliente(cliente_id, valor_delta) do
+    from c in Cliente,
+      where: c.id == ^cliente_id,
+      update: [inc: [saldo: ^valor_delta]],
+      select: [:saldo, :limite]
   end
 
   @doc """
@@ -69,41 +69,27 @@ defmodule Rinha do
   """
   @spec pegar_extrato(cliente_id) ::
           {:ok, extrato}
-          | {:error, :cliente_nao_encontrado}
+          | {:error, {:nao_encontrado, Rinha.Cliente, id: term}}
         when cliente_id: pos_integer | String.t()
 
   def pegar_extrato(cliente_id) when is_integer(cliente_id) do
-    query =
-      from c in Cliente,
-        left_join: t in assoc(c, :transacoes),
-        where: c.id == ^cliente_id,
-        limit: 10,
-        preload: [transacoes: t],
-        order_by: [desc: t.realizada_em]
+    with {:ok, %Cliente{} = cliente} <-
+           pegar_cliente(cliente_id, com: {:ultimas_transacoes, limite: 10}) do
+      balanco = %{
+        total: cliente.saldo,
+        limite: cliente.limite,
+        data_extrato: DateTime.utc_now()
+      }
 
-    case Repo.one(query) do
-      nil ->
-        {:error, :cliente_nao_encontrado}
-
-      cliente ->
-        balance = %{
-          total: cliente.saldo,
-          limite: cliente.limite,
-          data_extrato: DateTime.utc_now()
-        }
-
-        transacoes =
-          Enum.map(cliente.transacoes, &Map.take(&1, [:tipo, :valor, :descricao, :realizada_em]))
-
-        {:ok, %{saldo: balance, ultimas_transacoes: transacoes}}
+      {:ok, %{saldo: balanco, ultimas_transacoes: cliente.transacoes}}
     end
   end
 
   def pegar_extrato(<<_, _::binary>> = cliente_id) do
-    String.to_integer(cliente_id)
+    String.to_integer(cliente_id, 10)
   rescue
-    # o cliente_id pode não ser um número válido
-    _ -> {:error, :cliente_nao_encontrado}
+    # o cliente_id pode não ser um número base 10 válido
+    _ -> {:error, {:nao_encontrado, Cliente, id: cliente_id}}
   else
     client_id -> pegar_extrato(client_id)
   end
