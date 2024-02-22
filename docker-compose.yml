@@ -36,7 +36,7 @@ services:
           memory: 270M
 
   api01: &api
-    image: ghcr.io/rwillians/rinha-backend-2024q1:latest
+    image: ghcr.io/rwillians/rinha-backend-2024q1:${RINHA_RWILLIANS_IMAGE_VERSION:-latest}
     build:
       context: .
       args: { MIX_ENV: "prod" }
