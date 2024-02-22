@@ -19,6 +19,7 @@ defmodule Rinha.Application do
   def endpoint_child_specs(endpoint, opts \\ []) do
     {run_server?, opts} =
       Application.fetch_env!(:rinha, endpoint)
+      |> Keyword.put(:plug, endpoint)
       |> Keyword.merge(opts)
       |> Keyword.pop(:enabled?, false)
 
